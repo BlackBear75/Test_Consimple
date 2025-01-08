@@ -14,6 +14,10 @@ public class BaseRepository<TDocument> : IBaseRepository<TDocument> where TDocum
         _context = context;
         _dbSet = context.Set<TDocument>();
     }
+    public IQueryable<TDocument> Query()
+    {
+        return _context.Set<TDocument>().AsQueryable(); 
+    }
     public async Task<string> GetConnectionString()
     {
         return _context.Database.GetDbConnection().ConnectionString;

@@ -16,14 +16,14 @@ public class ClientController : ControllerBase
         _clientService = clientService;
     }
 
-    [HttpGet]
+    [HttpGet("getAll")]
     public async Task<IActionResult> GetAll()
     {
         var clients = await _clientService.GetAllAsync();
         return Ok(clients);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}/get-by-id")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -37,14 +37,14 @@ public class ClientController : ControllerBase
         }
     }
 
-    [HttpPost]
+    [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreateClientRequest request)
     {
         await _clientService.CreateAsync(request);
         return NoContent();
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}/update")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateClientRequest request)
     {
         try
@@ -58,7 +58,8 @@ public class ClientController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    
+    [HttpDelete("{id}/delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
         try
@@ -71,4 +72,12 @@ public class ClientController : ControllerBase
             return NotFound(ex.Message);
         }
     }
+    
+    [HttpGet("birthdays")]
+    public async Task<IActionResult> GetBirthdays([FromQuery] DateTime date)
+    {
+        var clients = await _clientService.GetBirthdaysAsync(date);
+        return Ok(clients);
+    }
+
 }

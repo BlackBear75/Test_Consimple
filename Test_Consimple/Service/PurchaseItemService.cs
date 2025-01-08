@@ -1,4 +1,6 @@
-﻿using Test_Consimple.Entity.PurchaseItem;
+﻿using Test_Consimple.Entity.Product;
+using Test_Consimple.Entity.Product.Repository;
+using Test_Consimple.Entity.PurchaseItem;
 using Test_Consimple.Entity.PurchaseItem.Repository;
 using Test_Consimple.Models.PurchaseItemModels;
 
@@ -17,10 +19,13 @@ public interface IPurchaseItemService
 public class PurchaseItemService : IPurchaseItemService
 {
     private readonly IPurchaseItemRepository<PurchaseItem> _purchaseItemRepository;
+    
+    private readonly IProductRepository<Product> _productRepository;
 
-    public PurchaseItemService(IPurchaseItemRepository<PurchaseItem> purchaseItemRepository)
+    public PurchaseItemService(IPurchaseItemRepository<PurchaseItem> purchaseItemRepository, IProductRepository<Product> productRepository)
     {
         _purchaseItemRepository = purchaseItemRepository;
+        _productRepository = productRepository;
     }
 
     public async Task<IEnumerable<PurchaseItemResponse>> GetAllAsync(Guid purchaseId)
@@ -54,12 +59,20 @@ public class PurchaseItemService : IPurchaseItemService
 
     public async Task CreateAsync(Guid purchaseId, CreatePurchaseItemRequest request)
     {
+        var product = await _productRepository.FindByIdAsync(request.ProductId);
+        if (product == null)
+        {
+            throw new KeyNotFoundException("Product not found.");
+        }
+
+        var totalPrice = product.Price * request.Quantity;
+
         var purchaseItem = new PurchaseItem
         {
             PurchaseId = purchaseId,
             ProductId = request.ProductId,
             Quantity = request.Quantity,
-            TotalPrice = request.TotalPrice
+            TotalPrice = totalPrice 
         };
 
         await _purchaseItemRepository.InsertOneAsync(purchaseItem);

@@ -4,6 +4,7 @@ namespace Test_Consimple.Base.Repository;
 
 public interface IBaseRepository<TDocument> where TDocument : Document
 {
+    IQueryable<TDocument> Query();
     Task<IEnumerable<TDocument>> GetAllAsync();
     Task<TDocument> FindByIdAsync(Guid id);
     Task InsertOneAsync(TDocument document);

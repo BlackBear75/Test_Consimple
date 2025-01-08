@@ -8,7 +8,6 @@ public class Purchase : Document
     public decimal TotalAmount { get; set; } 
 
     public Guid ClientId { get; set; } 
-    public Client.Client Client { get; set; } = null!;
 
     public ICollection<PurchaseItem.PurchaseItem> PurchaseItems { get; set; } = new List<PurchaseItem.PurchaseItem>();
 }

@@ -12,7 +12,7 @@ using Test_Consimple.Configuration;
 namespace Test_Consimple.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250108150224_InitialCreate")]
+    [Migration("20250108161539_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -159,13 +159,11 @@ namespace Test_Consimple.Migrations
 
             modelBuilder.Entity("Test_Consimple.Entity.Purchase.Purchase", b =>
                 {
-                    b.HasOne("Test_Consimple.Entity.Client.Client", "Client")
+                    b.HasOne("Test_Consimple.Entity.Client.Client", null)
                         .WithMany("Purchases")
                         .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Client");
                 });
 
             modelBuilder.Entity("Test_Consimple.Entity.PurchaseItem.PurchaseItem", b =>

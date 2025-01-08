@@ -1,4 +1,8 @@
-﻿using Test_Consimple.Entity.Product.Repository;
+﻿using Microsoft.EntityFrameworkCore;
+using Test_Consimple.Entity.Client;
+using Test_Consimple.Entity.Client.Repository;
+using Test_Consimple.Entity.Product;
+using Test_Consimple.Entity.Product.Repository;
 using Test_Consimple.Entity.Purchase;
 using Test_Consimple.Entity.PurchaseItem;
 using Test_Consimple.Models.PurchaseItemModels;
@@ -13,15 +17,73 @@ public interface  IPurchaseService
     Task CreateAsync(CreatePurchaseRequest request);
     Task UpdateAsync(Guid id, UpdatePurchaseRequest request);
     Task DeleteAsync(Guid id);
+    Task<IEnumerable<RecentBuyerResponse>> GetRecentBuyersAsync(int days);
+    Task<IEnumerable<CategoryResponse>> GetPopularCategoriesAsync(Guid clientId);
 }
 
 public class PurchaseService : IPurchaseService
 {
     private readonly IPurchaseRepository<Purchase> _purchaseRepository;
+    
+    private readonly IClientRepository<Client> _clientRepository;
+    
+    private readonly IProductRepository<Product> _productRepository;
 
-    public PurchaseService(IPurchaseRepository<Purchase> purchaseRepository)
+
+    public PurchaseService(IPurchaseRepository<Purchase> purchaseRepository, IClientRepository<Client> clientRepository, IProductRepository<Product> productRepository)
     {
+        _clientRepository = clientRepository;
         _purchaseRepository = purchaseRepository;
+        _productRepository = productRepository; 
+    }
+    
+    public async Task<IEnumerable<RecentBuyerResponse>> GetRecentBuyersAsync(int days)
+    {
+        var dateThreshold = DateTime.UtcNow.AddDays(-days);
+
+        var purchases = await _purchaseRepository.FilterByAsync(p => p.PurchaseDate >= dateThreshold);
+
+        var clientIds = purchases.Select(p => p.ClientId).Distinct();
+        var clients = await _clientRepository.FilterByAsync(c => clientIds.Contains(c.Id));
+
+        var recentBuyers = purchases
+            .GroupBy(p => p.ClientId)
+            .Select(group =>
+            {
+                var client = clients.FirstOrDefault(c => c.Id == group.Key);
+                return new RecentBuyerResponse
+                {
+                    ClientId = group.Key,
+                    FullName = client?.FullName ?? "Unknown",
+                    LastPurchaseDate = group.Max(p => p.PurchaseDate)
+                };
+            });
+
+        return recentBuyers;
+    }
+
+    public async Task<IEnumerable<CategoryResponse>> GetPopularCategoriesAsync(Guid clientId)
+    {
+        var purchases = await _purchaseRepository
+            .Query()
+            .Include(p => p.PurchaseItems) 
+            .ThenInclude(pi => pi.Product)
+            .Where(p => p.ClientId == clientId)
+            .ToListAsync();
+
+        if (!purchases.Any(p => p.PurchaseItems.Any()))
+            return Enumerable.Empty<CategoryResponse>();
+        var categories = purchases
+            .SelectMany(p => p.PurchaseItems)
+            .Where(pi => pi.Product != null)
+            .GroupBy(pi => pi.Product.Category)
+            .Select(group => new CategoryResponse
+            {
+                Category = group.Key ?? "Unknown", 
+                TotalUnits = group.Sum(pi => pi.Quantity)
+            });
+
+        return categories;
     }
 
     public async Task<IEnumerable<PurchaseResponse>> GetAllAsync()
@@ -65,17 +127,32 @@ public class PurchaseService : IPurchaseService
 
     public async Task CreateAsync(CreatePurchaseRequest request)
     {
+        decimal totalAmount = 0;
+
+        var purchaseItems = new List<PurchaseItem>();
+        foreach (var productRequest in request.Products)
+        {
+            var product = await _productRepository.FindByIdAsync(productRequest.ProductId);
+            if (product == null)
+                throw new KeyNotFoundException($"Product with ID {productRequest.ProductId} not found.");
+
+            var totalPrice = product.Price * productRequest.Quantity;
+            totalAmount += totalPrice;
+
+            purchaseItems.Add(new PurchaseItem
+            {
+                ProductId = productRequest.ProductId,
+                Quantity = productRequest.Quantity,
+                TotalPrice = totalPrice
+            });
+        }
+
         var purchase = new Purchase
         {
             PurchaseDate = request.PurchaseDate,
-            TotalAmount = request.TotalAmount,
+            TotalAmount = totalAmount, 
             ClientId = request.ClientId,
-            PurchaseItems = request.Products.Select(p => new PurchaseItem
-            {
-                ProductId = p.ProductId,
-                Quantity = p.Quantity,
-                TotalPrice = p.TotalPrice
-            }).ToList()
+            PurchaseItems = purchaseItems
         };
 
         await _purchaseRepository.InsertOneAsync(purchase);
@@ -87,16 +164,30 @@ public class PurchaseService : IPurchaseService
         if (purchase == null)
             throw new KeyNotFoundException("Purchase not found.");
 
-        purchase.PurchaseDate = request.PurchaseDate;
-        purchase.TotalAmount = request.TotalAmount;
-        purchase.ClientId = request.ClientId;
+        decimal totalAmount = 0;
 
-        purchase.PurchaseItems = request.Products.Select(p => new PurchaseItem
+        var updatedPurchaseItems = new List<PurchaseItem>();
+        foreach (var productRequest in request.Products)
         {
-            ProductId = p.ProductId,
-            Quantity = p.Quantity,
-            TotalPrice = p.TotalPrice
-        }).ToList();
+            var product = await _productRepository.FindByIdAsync(productRequest.ProductId);
+            if (product == null)
+                throw new KeyNotFoundException($"Product with ID {productRequest.ProductId} not found.");
+
+            var totalPrice = product.Price * productRequest.Quantity;
+            totalAmount += totalPrice;
+
+            updatedPurchaseItems.Add(new PurchaseItem
+            {
+                ProductId = productRequest.ProductId,
+                Quantity = productRequest.Quantity,
+                TotalPrice = totalPrice
+            });
+        }
+
+        purchase.PurchaseDate = request.PurchaseDate;
+        purchase.TotalAmount = totalAmount; 
+        purchase.ClientId = request.ClientId;
+        purchase.PurchaseItems = updatedPurchaseItems;
 
         await _purchaseRepository.UpdateOneAsync(purchase);
     }

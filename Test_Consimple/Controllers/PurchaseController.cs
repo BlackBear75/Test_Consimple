@@ -14,7 +14,21 @@ public class PurchaseController : ControllerBase
     {
         _purchaseService = purchaseService;
     }
-
+    
+    [HttpGet("recent-buyers")]
+    public async Task<IActionResult> GetRecentBuyers([FromQuery] int days)
+    {
+        var clients = await _purchaseService.GetRecentBuyersAsync(days);
+        return Ok(clients);
+    }
+    
+    [HttpGet("{clientId}/popular-categories")]
+    public async Task<IActionResult> GetPopularCategories(Guid clientId)
+    {
+        var categories = await _purchaseService.GetPopularCategoriesAsync(clientId);
+        return Ok(categories);
+    }
+    
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
