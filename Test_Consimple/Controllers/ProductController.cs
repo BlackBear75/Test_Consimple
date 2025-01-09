@@ -15,14 +15,14 @@ public class ProductController : ControllerBase
         _productService = productService;
     }
 
-    [HttpGet]
+    [HttpGet("GetAll")]
     public async Task<IActionResult> GetAll()
     {
         var products = await _productService.GetAllAsync();
         return Ok(products);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}/GetById")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -36,14 +36,14 @@ public class ProductController : ControllerBase
         }
     }
 
-    [HttpPost]
+    [HttpPost("Create")]
     public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
     {
         await _productService.CreateAsync(request);
         return NoContent();
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}/Update")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request)
     {
         try
@@ -57,7 +57,7 @@ public class ProductController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id}/Delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
         try

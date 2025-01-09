@@ -29,14 +29,14 @@ public class PurchaseController : ControllerBase
         return Ok(categories);
     }
     
-    [HttpGet]
+    [HttpGet("GetAll")]
     public async Task<IActionResult> GetAll()
     {
         var purchases = await _purchaseService.GetAllAsync();
         return Ok(purchases);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}/GetById")]
     public async Task<IActionResult> GetById(Guid id)
     {
         try
@@ -50,14 +50,14 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [HttpPost]
+    [HttpPost("Create")]
     public async Task<IActionResult> Create([FromBody] CreatePurchaseRequest request)
     {
         await _purchaseService.CreateAsync(request);
         return NoContent();
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id}/Update")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePurchaseRequest request)
     {
         try
@@ -71,7 +71,7 @@ public class PurchaseController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id}/Delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
         try

@@ -1,5 +1,10 @@
-﻿using Test_Consimple.Entity.Client;
+﻿using Microsoft.EntityFrameworkCore;
+using Test_Consimple.Entity.Client;
 using Test_Consimple.Entity.Client.Repository;
+using Test_Consimple.Entity.Product.Repository;
+using Test_Consimple.Entity.Purchase;
+using Test_Consimple.Entity.PurchaseItem;
+using Test_Consimple.Entity.PurchaseItem.Repository;
 using Test_Consimple.Models.ClientModels;
 
 namespace Test_Consimple.Service;
@@ -19,9 +24,15 @@ public interface IClientService
 public class ClientService : IClientService
 {
     private readonly IClientRepository<Client> _clientRepository;
+    
+    private readonly IPurchaseRepository<Purchase> _purchaseRepository;
+    
+    private readonly IPurchaseItemRepository<PurchaseItem> _purchaseItemRepository;
 
-    public ClientService(IClientRepository<Client> clientRepository)
+    public ClientService(IClientRepository<Client> clientRepository, IPurchaseRepository<Purchase> purchaseRepository, IPurchaseItemRepository<PurchaseItem> purchaseItemRepository)
     {
+        _purchaseRepository = purchaseRepository;
+        _purchaseItemRepository = purchaseItemRepository;
         _clientRepository = clientRepository;
     }
 
@@ -94,6 +105,23 @@ public class ClientService : IClientService
         if (client == null)
             throw new KeyNotFoundException("Client not found.");
 
+        var purchases = await _purchaseRepository
+            .Query()
+            .Include(p => p.PurchaseItems) 
+            .Where(p => p.ClientId == id)
+            .ToListAsync();
+
+        foreach (var purchase in purchases)
+        {
+            foreach (var purchaseItem in purchase.PurchaseItems)
+            {
+                await _purchaseItemRepository.DeleteOneAsync(purchaseItem.Id);
+            }
+
+            await _purchaseRepository.DeleteOneAsync(purchase.Id);
+        }
+
         await _clientRepository.DeleteOneAsync(id);
     }
+
 }

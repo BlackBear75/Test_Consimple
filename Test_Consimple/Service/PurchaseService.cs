@@ -5,6 +5,7 @@ using Test_Consimple.Entity.Product;
 using Test_Consimple.Entity.Product.Repository;
 using Test_Consimple.Entity.Purchase;
 using Test_Consimple.Entity.PurchaseItem;
+using Test_Consimple.Entity.PurchaseItem.Repository;
 using Test_Consimple.Models.PurchaseItemModels;
 using Test_Consimple.Models.PurchaseModels;
 
@@ -25,13 +26,16 @@ public class PurchaseService : IPurchaseService
 {
     private readonly IPurchaseRepository<Purchase> _purchaseRepository;
     
+    private readonly IPurchaseItemRepository<PurchaseItem> _purchaseItemRepository;
+    
     private readonly IClientRepository<Client> _clientRepository;
     
     private readonly IProductRepository<Product> _productRepository;
 
 
-    public PurchaseService(IPurchaseRepository<Purchase> purchaseRepository, IClientRepository<Client> clientRepository, IProductRepository<Product> productRepository)
+    public PurchaseService(IPurchaseRepository<Purchase> purchaseRepository, IClientRepository<Client> clientRepository, IProductRepository<Product> productRepository,IPurchaseItemRepository<PurchaseItem> purchaseItemRepository)
     {
+        _purchaseItemRepository = purchaseItemRepository;
         _clientRepository = clientRepository;
         _purchaseRepository = purchaseRepository;
         _productRepository = productRepository; 
@@ -194,10 +198,20 @@ public class PurchaseService : IPurchaseService
 
     public async Task DeleteAsync(Guid id)
     {
-        var purchase = await _purchaseRepository.FindByIdAsync(id);
+        var purchase = await _purchaseRepository
+            .Query() 
+            .Include(p => p.PurchaseItems) 
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (purchase == null)
             throw new KeyNotFoundException("Purchase not found.");
 
+        foreach (var purchaseItem in purchase.PurchaseItems)
+        {
+            await _purchaseItemRepository.DeleteOneAsync(purchaseItem.Id);
+        }
+
         await _purchaseRepository.DeleteOneAsync(id);
     }
+
 }
