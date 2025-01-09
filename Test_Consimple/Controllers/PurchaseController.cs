@@ -18,9 +18,14 @@ public class PurchaseController : ControllerBase
     [HttpGet("recent-buyers")]
     public async Task<IActionResult> GetRecentBuyers([FromQuery] int days)
     {
+        if (days < 0)
+        {
+            return BadRequest("The 'days' parameter must be a positive integer or 0.");
+        }
         var clients = await _purchaseService.GetRecentBuyersAsync(days);
         return Ok(clients);
     }
+
     
     [HttpGet("{clientId}/popular-categories")]
     public async Task<IActionResult> GetPopularCategories(Guid clientId)

@@ -43,11 +43,14 @@ public class PurchaseService : IPurchaseService
     
     public async Task<IEnumerable<RecentBuyerResponse>> GetRecentBuyersAsync(int days)
     {
-        var dateThreshold = DateTime.UtcNow.AddDays(-days);
+        var dateThreshold = days == 0 
+            ? DateTime.UtcNow.Date 
+            : DateTime.UtcNow.AddDays(-days);
 
         var purchases = await _purchaseRepository.FilterByAsync(p => p.PurchaseDate >= dateThreshold);
 
         var clientIds = purchases.Select(p => p.ClientId).Distinct();
+
         var clients = await _clientRepository.FilterByAsync(c => clientIds.Contains(c.Id));
 
         var recentBuyers = purchases

@@ -17,7 +17,7 @@ public interface IClientService
     Task UpdateAsync(Guid id, UpdateClientRequest request);
     Task DeleteAsync(Guid id);
 
-    Task<IEnumerable<ClientResponse>> GetBirthdaysAsync(DateTime date);
+    Task<IEnumerable<ClientResponse>> GetBirthdaysAsync(int month, int day);
 }
 
 
@@ -36,10 +36,10 @@ public class ClientService : IClientService
         _clientRepository = clientRepository;
     }
 
-    public async Task<IEnumerable<ClientResponse>> GetBirthdaysAsync(DateTime date)
+    public async Task<IEnumerable<ClientResponse>> GetBirthdaysAsync(int month, int day)
     {
         var clients = await _clientRepository.FilterByAsync(c => 
-            c.DateOfBirth.Month == date.Month && c.DateOfBirth.Day == date.Day);
+            c.DateOfBirth.Month == month && c.DateOfBirth.Day == day);
 
         return clients.Select(c => new ClientResponse
         {
@@ -47,6 +47,7 @@ public class ClientService : IClientService
             FullName = c.FullName
         });
     }
+
     
     public async Task<IEnumerable<ClientResponse>> GetAllAsync()
     {

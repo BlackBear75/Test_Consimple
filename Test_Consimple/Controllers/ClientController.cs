@@ -72,11 +72,15 @@ public class ClientController : ControllerBase
             return NotFound(ex.Message);
         }
     }
-    
     [HttpGet("birthdays")]
-    public async Task<IActionResult> GetBirthdays([FromQuery] DateTime date)
+    public async Task<IActionResult> GetBirthdays([FromQuery] string date)
     {
-        var clients = await _clientService.GetBirthdaysAsync(date);
+        if (!DateTime.TryParseExact(date, "MM-dd", null, System.Globalization.DateTimeStyles.None, out var parsedDate))
+        {
+            return BadRequest("Invalid date format. Use MM-dd format (e.g., 01-01).");
+        }
+
+        var clients = await _clientService.GetBirthdaysAsync(parsedDate.Month, parsedDate.Day);
         return Ok(clients);
     }
 
